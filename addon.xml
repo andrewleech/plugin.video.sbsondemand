@@ -1,26 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<addon
-  id="plugin.video.sbs2"
-  name="SBS2"
-  version="1.0.2"
-  provider-name="Denis">
+<?xml version="1.0" encoding="utf-8"?>
+<addon id="plugin.video.sbs2" name="SBS2" version="1.0.2" provider-name="Denis">
   <requires>
-    <import addon="xbmc.python" version="1.0.1"/>
+    <import addon="xbmc.python" version="1.0.2" />
   </requires>
-  <extension point="xbmc.python.pluginsource"
-             provides="video"
-             library="default.py">
+  <extension point="xbmc.python.pluginsource" provides="video" library="default.py">
     <provides>video</provides>
   </extension>
-  <extension 
-    point="xbmc.addon.metadata"
-    library="default.py">
+  <extension point="xbmc.addon.metadata" library="default.py">
     <summary>SBS 2</summary>
     <description>Catch up TV content for SBS</description>
     <provides>video</provides>
     <platform>all</platform>
-	<disclaimer>You must be within Australia to use watch these
-      videos.[CR]"SBS", SBS Logos and other works are copyright of
-      their respective owners.</disclaimer>
+    <disclaimer>You must be within Australia to use watch these videos.[CR]"SBS", SBS Logos and other works are copyright of their respective owners.</disclaimer>
   </extension>
 </addon>
