@@ -1,5 +1,6 @@
 [B]Version 0.0.3[/B]
 - Minor updates to deal with new parsing of smil files
+- Recording now uses ffmpeg, you will need to change your settings to reflect this
 
 [B]Version 0.0.1[/B]
 - Initial version of Addon
