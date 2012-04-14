@@ -1,3 +1,6 @@
+[B]Version 0.0.5[/B]
+-fix to deal with os.getcwd problem
+
 [B]Version 0.0.4[/B]
 -can now record flv files
 

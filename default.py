@@ -10,8 +10,9 @@ import resources.scraper
 
 
 ##############################################################
+ID = 'plugin.video.sbs2'
 __XBMC_Revision__	= xbmc.getInfoLabel('System.BuildVersion')
-__settings__		= xbmcaddon.Addon( id=os.path.basename(os.getcwd())) #xbmcaddon.Addon(id='plugin.video.sbs2')
+__settings__		= xbmcaddon.Addon( id=ID) 
 __language__		= __settings__.getLocalizedString
 __version__			= __settings__.getAddonInfo('version')
 __cwd__				= __settings__.getAddonInfo('path')
@@ -35,7 +36,6 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 
 ##############################################################
 def INDEX(params):
-	addon = xbmcaddon.Addon( id=os.path.basename(os.getcwd()))
 	scraper = resources.scraper.SCRAPER
 
 	node = scraper.menu_main(params["path"])
@@ -59,8 +59,7 @@ def INDEX(params):
 
 def play(params):
 	scraper = resources.scraper.SCRAPER
-	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
-	bitrate	= int(addon.getSetting( "vid_quality" ))
+	bitrate	= int(__settings__.getSetting( "vid_quality" ))
 	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
@@ -75,8 +74,7 @@ def record(params):
 			return "_"
 	print params
 	scraper = resources.scraper.SCRAPER
-	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
-	bitrate	= int(addon.getSetting( "vid_quality" ))
+	bitrate	= int(__settings__.getSetting( "vid_quality" ))
 	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
