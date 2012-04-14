@@ -2,6 +2,7 @@ import	urllib2
 import	re
 from	time import localtime, strftime, gmtime
 from	BeautifulSoup import BeautifulStoneSoup,BeautifulSoup, NavigableString
+import collections
 
 
 def geturl(url):
@@ -94,11 +95,24 @@ class MenuItems(object):
 			contents2 =  geturl(mtch)
 			print contents2
 			soup = BeautifulSoup(contents2)
-			for item in soup.findAll('meta'):
-				out["rtmp"] = item["base"]
-			out["play"] = {}
-			for item in soup.findAll('video'):
-				out["play"][int(item["system-bitrate"])] = item["src"]
+			
+			if contents2.find('.flv') > -1:
+				for item in soup.findAll('video'):
+					out[int(item["system-bitrate"])] = item["src"]			
+			else:
+				vals = {}
+				for item in soup.findAll('video'):
+					splts = item["src"].rsplit("/", 1)
+					hd, (tl, rate) = splts[:-1], splts[-1].rsplit("K.",1)[0].rsplit("_", 1)
+					hd = "/".join(hd)	
+					if (hd,tl) not in vals:
+						vals[hd,tl] = set([])
+					vals[hd,tl].add(rate)
+			
+				for (hd,tl),rts in vals.iteritems():
+					for idx, rt in enumerate(rts):
+						out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
+					
 		return out
 
 	def menu_tree(self, node, out):

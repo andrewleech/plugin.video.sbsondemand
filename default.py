@@ -61,32 +61,45 @@ def play(params):
 	scraper = resources.scraper.SCRAPER
 	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
 	bitrate	= int(addon.getSetting( "vid_quality" ))
-	node	= scraper.menu_main(params["path"])
 	obj		= scraper.menu_play(params["url"])
-
-	diff, sbitrate, play = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj["play"].iteritems())])[0]
-	print "using:", diff, sbitrate, play
-
-	url = ""
-	if "rtmp" in obj:
-		url = obj["rtmp"] + " " + "playpath="
-	url += play
+	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
+	print ("using:",diff, bitrate, sbitrate, url)
 	item = xbmcgui.ListItem(params["name"])
 	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(url, item)
 
 def record(params):		
+	def rpt(c):
+		if c not in set(" %*^&$#@!~:"):
+			return c
+		else:
+			return "_"
 	print params
 	scraper = resources.scraper.SCRAPER
 	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
 	bitrate	= int(addon.getSetting( "vid_quality" ))
-	node	= scraper.menu_main(params["path"])
 	obj		= scraper.menu_play(params["url"])
-	print obj
-	diff, sbitrate, play = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj["play"].iteritems())])[0]	
+	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
+	print ("using:",diff, bitrate, sbitrate, url)
 	
-	args = __settings__.getSetting( "rtmpdump" ), "-o%s%s" % (__settings__.getSetting( "path" ), play.split("/")[-1]), "--rtmp=%s" % obj["rtmp"], "--playpath=%s" % play
-	print args
-	subprocess.call(args)
+	args = (
+		__settings__.getSetting( "ffmpeg" ), 
+		'-i',  url,
+		"-vcodec", "copy",
+		"-acodec", "copy", 
+		'%s%s.mp4' % (
+			__settings__.getSetting( "path" ), 
+			"".join(rpt(c) for c in str(params["name"]))
+		)
+	)
+	startupinfo = None
+	if os.name == 'nt':
+		startupinfo = subprocess.STARTUPINFO()
+		startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW		
+	
+	print " ".join(args)
+	xx = subprocess.Popen(args, stdin= subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE,shell= False, startupinfo=startupinfo)
+	print xx.stdout.read()
+	print xx.stderr.read()
 	
 ##############################################################
 MODE_MAP	= {
@@ -115,6 +128,10 @@ def parse_args(args):
 
 
 def main():
+		
+#	item = xbmcgui.ListItem("test")
+#	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play("http://sbsauvod-f.akamaihd.net/SBS_Production/managed/2012/04/2221230187_,1500,1000,512,128,K.mp4.csmil/bitrate=0?v=2.5.14&fp=WIN%2011,1,102,55&r=HJHYK&g=SOENISYOINXG", item)
+#	return
 	params = parse_args(sys.argv)
 	print "##", sys.argv, params
 	MODE_MAP[params["mode"]](params)
