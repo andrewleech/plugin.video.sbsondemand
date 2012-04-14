@@ -61,7 +61,7 @@ def play(params):
 	scraper = resources.scraper.SCRAPER
 	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
 	bitrate	= int(addon.getSetting( "vid_quality" ))
-	obj		= scraper.menu_play(params["url"])
+	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
 	item = xbmcgui.ListItem(params["name"])
@@ -77,7 +77,7 @@ def record(params):
 	scraper = resources.scraper.SCRAPER
 	addon	= xbmcaddon.Addon( id=os.path.basename( os.getcwd() ) )
 	bitrate	= int(addon.getSetting( "vid_quality" ))
-	obj		= scraper.menu_play(params["url"])
+	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
 	
@@ -86,9 +86,10 @@ def record(params):
 		'-i',  url,
 		"-vcodec", "copy",
 		"-acodec", "copy", 
-		'%s%s.mp4' % (
+		'%s%s%s' % (
 			__settings__.getSetting( "path" ), 
-			"".join(rpt(c) for c in str(params["name"]))
+			"".join(rpt(c) for c in str(params["name"])),
+			fmt
 		)
 	)
 	startupinfo = None

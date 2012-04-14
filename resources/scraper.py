@@ -91,6 +91,7 @@ class MenuItems(object):
 		print lk
 		contents = geturl(lk)
 		out = {}
+		fmt = None
 		for mtch in re.findall(r'^[ \t]+player.releaseUrl = "(.*)";', contents, re.MULTILINE):
 			contents2 =  geturl(mtch)
 			print contents2
@@ -98,8 +99,10 @@ class MenuItems(object):
 			
 			if contents2.find('.flv') > -1:
 				for item in soup.findAll('video'):
-					out[int(item["system-bitrate"])] = item["src"]			
+					out[int(item["system-bitrate"])] = item["src"]
+					fmt = '.flv'
 			else:
+				fmt = '.mp4'
 				vals = {}
 				for item in soup.findAll('video'):
 					splts = item["src"].rsplit("/", 1)
@@ -113,7 +116,7 @@ class MenuItems(object):
 					for idx, rt in enumerate(rts):
 						out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
 					
-		return out
+		return out, fmt
 
 	def menu_tree(self, node, out):
 		for i in self.menu_main(node)["children"]:
