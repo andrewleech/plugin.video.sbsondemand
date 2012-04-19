@@ -10,9 +10,9 @@ import resources.scraper
 
 
 ##############################################################
-ID = 'plugin.video.sbs2'
+ID = 'plugin.video.sbs2' #os.path.basename(os.getcwd())
 __XBMC_Revision__	= xbmc.getInfoLabel('System.BuildVersion')
-__settings__		= xbmcaddon.Addon( id=ID) 
+__settings__		= xbmcaddon.Addon( id=ID)
 __language__		= __settings__.getLocalizedString
 __version__			= __settings__.getAddonInfo('version')
 __cwd__				= __settings__.getAddonInfo('path')
@@ -36,6 +36,7 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 
 ##############################################################
 def INDEX(params):
+	addon = xbmcaddon.Addon( id=ID)
 	scraper = resources.scraper.SCRAPER
 
 	node = scraper.menu_main(params["path"])
@@ -59,7 +60,8 @@ def INDEX(params):
 
 def play(params):
 	scraper = resources.scraper.SCRAPER
-	bitrate	= int(__settings__.getSetting( "vid_quality" ))
+	addon	= xbmcaddon.Addon( id=ID )
+	bitrate	= int(addon.getSetting( "vid_quality" ))
 	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
@@ -74,21 +76,22 @@ def record(params):
 			return "_"
 	print params
 	scraper = resources.scraper.SCRAPER
-	bitrate	= int(__settings__.getSetting( "vid_quality" ))
+	addon	= xbmcaddon.Addon( id=ID )
+	bitrate	= int(addon.getSetting( "vid_quality" ))
 	obj,fmt		= scraper.menu_play(params["url"])
 	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
-	
+	name= '%s%s%s' % (
+			__settings__.getSetting( "path" ), 
+			"".join(rpt(c) for c in str(params["name"])),
+			fmt
+		)
 	args = (
 		__settings__.getSetting( "ffmpeg" ), 
 		'-i',  url,
 		"-vcodec", "copy",
 		"-acodec", "copy", 
-		'%s%s%s' % (
-			__settings__.getSetting( "path" ), 
-			"".join(rpt(c) for c in str(params["name"])),
-			fmt
-		)
+		name
 	)
 	startupinfo = None
 	if os.name == 'nt':
@@ -96,9 +99,15 @@ def record(params):
 		startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW		
 	
 	print " ".join(args)
-	xx = subprocess.Popen(args, stdin= subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE,shell= False, startupinfo=startupinfo)
-	print xx.stdout.read()
-	print xx.stderr.read()
+	sout = open(name+".fmpeg.out", "w")
+	serr = open(name+".ffmpeg.err", "w")
+	try:
+		xx = subprocess.call(args, stdin= subprocess.PIPE, stdout= sout, stderr= serr,shell= False, startupinfo=startupinfo)
+	finally:
+		sout.close()
+		serr.close()
+	#print xx.stdout.read()
+	#print xx.stderr.read()
 	
 ##############################################################
 MODE_MAP	= {

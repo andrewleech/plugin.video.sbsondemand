@@ -1,12 +1,15 @@
-[B]Version 0.0.5[/B]
+[B]Version 1.0.6[/B]
+-fix to deal with recorder locking up
+
+[B]Version 1.0.5[/B]
 -fix to deal with os.getcwd problem
 
-[B]Version 0.0.4[/B]
+[B]Version 1.0.4[/B]
 -can now record flv files
 
-[B]Version 0.0.3[/B]
+[B]Version 1.0.3[/B]
 - Minor updates to deal with new parsing of smil files
 - Recording now uses ffmpeg, please update your settings
 
-[B]Version 0.0.1[/B]
+[B]Version 1.0.1[/B]
 - Initial version of Addon
