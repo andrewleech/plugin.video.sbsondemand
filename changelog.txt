@@ -1,3 +1,6 @@
+[B]Version 1.0.7[/B]
+-filter crap out of the json http://www.sbs.com.au/ondemand/js/video-menu
+
 [B]Version 1.0.6[/B]
 -fix to deal with recorder locking up
 
