@@ -40,17 +40,20 @@ class MenuItems(object):
 			if "name" in item:
 				name		= tuple(list(parent) + [item["name"]])
 				children	= item.get("children", [])
-				url			= "http://www.sbs.com.au%s" % (re.sub(r'%([0-9,A-F,a-f]{2})', lambda m : chr(int(m.group(1),16)), item["url"].replace("\\", "")))
+				if "url" in item:
+					url			= "http://www.sbs.com.au%s" % (re.sub(r'%([0-9,A-F,a-f]{2})', lambda m : chr(int(m.group(1),16)), item["url"].replace("\\", "")))
 
-				if children:
-					self.cache[name]				= {"url"	:  None, "children" : 	self.__menu(name, children)}
-					alli 							= tuple(list(name) + ["All Items"])
-					self.cache[alli]				= {"url"	: url, "children" : []}
-					self.cache[name]["children"]	= [alli] + self.cache[name]["children"]
+					if children:
+						self.cache[name]				= {"url"	:  None, "children" : 	self.__menu(name, children)}
+						alli 							= tuple(list(name) + ["All Items"])
+						self.cache[alli]				= {"url"	: url, "children" : []}
+						self.cache[name]["children"]	= [alli] + self.cache[name]["children"]
+					else:
+						self.cache[name]				= {"url"	:  url, "children" : []}
+				
+					out.append(name)
 				else:
-					self.cache[name]				= {"url"	:  url, "children" : []}
-
-				out.append(name)
+					print ("!!", item)
 
 		return out
 
