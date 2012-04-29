@@ -1,3 +1,9 @@
+[B]Version 1.0.8[/B]
+-fixed bug in bitrate selection
+-new options in configuration settings for seeking issues(Note using these will make XBMC incorrectly report the playing point of the film):
+  -option to jump to a seek point and play (this is to work around seek issues with most SBS videos)
+  -(Eden Only) option to allow a hacked up version of seeking to work by catching seek notifications and (seeking backwards is still a bit flaky)
+
 [B]Version 1.0.7[/B]
 -filter crap out of the json http://www.sbs.com.au/ondemand/js/video-menu
 

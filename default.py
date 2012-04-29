@@ -30,6 +30,7 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 		liz.setInfo("video", info)
 	if not folder:
 		liz.addContextMenuItems( [("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") ))] )
+		liz.addContextMenuItems( [("Play at Seek", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=3") ))] )
 		
 	ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz,isFolder=folder)
 	return ok
@@ -58,15 +59,99 @@ def INDEX(params):
 
 	xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
+def seekhack(player, url, item):
+	addon	= xbmcaddon.Addon( id=ID )
+	#if not xbmc.abortRequested:
+	print ("***", bool(addon.getSetting( "seek_hack" )))
+	
+	if url.index("seek=") >= 0:
+		flag, lastseek = url.split("&")[-1].split("=")
+		lastseek = int(lastseek)
+		if addon.getSetting( "seek_hack" ) == "true" and flag:
+			import json
+			import socket
+			import select
+			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			sock.connect(("127.0.0.1", 9090))
+
+			while player.isPlaying():
+				xbmc.sleep(1000)	
+				print "Sniffing for notifications..."
+				
+				if len(select.select([sock], [], [], 0)[0]) != 0:
+					notific_str = sock.recv(4096)
+					print ("??", notific_str)
+					notifs = ['{"jsonrpc"' + noti for noti in notific_str.split('{"jsonrpc"')]
+					for notific in notifs[1:]:
+						print ("??", notific)
+						notific = json.loads(notific)
+						if notific["method"] == "Player.OnSeek":
+							ctime = sum(
+									int(notific["params"]["data"]["player"]["time"][k]) * mul
+									for k, mul in ( ("hours", 3600 ), ("minutes", 60), ("seconds", 1))
+								)
+
+							seekoff = sum(
+									int(notific["params"]["data"]["player"]["seekoffset"][k]) * mul
+									for k, mul in ( ("hours", 3600 ), ("minutes", 60), ("seconds", 1))
+								)
+							curtime = player.getTime()
+							#UGLY hack because going backwards can take us beyond the current played item's start time, have to provide a good default (10min)
+							if ctime < 1:
+								seekoff = -600
+							lastseek =  (curtime + lastseek + seekoff)
+							if lastseek < 0:
+								lastseek = 0
+							print ("??", lastseek)
+							player.stop()
+							#item.setProperty("StartPercent",  "20")
+							#item.setInfo("video", {"Player.Time" :  str(seek), "VideoPlayer.Time" :  str(seek)})
+							
+							player.play("&".join(url.split("&")[:-1]) + "&seek={0}".format(lastseek), item)
+							xbmc.sleep(int(addon.getSetting( "delay" )))	
+							xbmc.executebuiltin("PlayerControl(Play)")
+						
 def play(params):
 	scraper = resources.scraper.SCRAPER
 	addon	= xbmcaddon.Addon( id=ID )
 	bitrate	= int(addon.getSetting( "vid_quality" ))
 	obj,fmt		= scraper.menu_play(params["url"])
-	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]	
+	diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]	
 	print ("using:",diff, bitrate, sbitrate, url)
 	item = xbmcgui.ListItem(params["name"])
-	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(url, item)
+	
+	player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
+	player.play(url, item)
+	
+	xbmc.sleep(int(addon.getSetting( "delay" )))	
+	xbmc.executebuiltin("PlayerControl(Play)")
+	seekhack(player, url, item)
+		
+
+	
+def play_at_seek(params):
+	offset = False
+	keyboard = xbmc.Keyboard('')
+	keyboard.doModal()
+	if (keyboard.isConfirmed()):
+	  offset = int(keyboard.getText())
+	  
+
+	if offset != False:
+		scraper = resources.scraper.SCRAPER
+		addon	= xbmcaddon.Addon( id=ID )
+		bitrate	= int(addon.getSetting( "vid_quality" ))
+		obj,fmt		= scraper.menu_play(params["url"])
+		diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]	
+		print ("using:",diff, bitrate, sbitrate, url, obj.iteritems)
+		item = xbmcgui.ListItem(params["name"])
+		
+		player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
+		player.play("&".join(url.split("&")[:-1]) + "&seek={0}".format(offset), item)
+		
+		xbmc.sleep(int(addon.getSetting( "delay" )))	
+		xbmc.executebuiltin("PlayerControl(Play)")
+		seekhack(player, url, item)
 
 def record(params):		
 	def rpt(c):
@@ -113,7 +198,8 @@ def record(params):
 MODE_MAP	= {
 	0	: lambda params:	INDEX(params),
 	1	: lambda url:		play(url),
-	2	: lambda params: 	record(params)
+	2	: lambda params: 	record(params),
+	3	: lambda params: 	play_at_seek(params)
 }
 
 
@@ -136,13 +222,12 @@ def parse_args(args):
 
 
 def main():
-		
 #	item = xbmcgui.ListItem("test")
 #	xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play("http://sbsauvod-f.akamaihd.net/SBS_Production/managed/2012/04/2221230187_,1500,1000,512,128,K.mp4.csmil/bitrate=0?v=2.5.14&fp=WIN%2011,1,102,55&r=HJHYK&g=SOENISYOINXG", item)
 #	return
 	params = parse_args(sys.argv)
 	print "##", sys.argv, params
 	MODE_MAP[params["mode"]](params)
-
+	
 
 main()

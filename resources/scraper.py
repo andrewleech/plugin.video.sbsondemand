@@ -116,8 +116,8 @@ class MenuItems(object):
 					vals[hd,tl].add(rate)
 			
 				for (hd,tl),rts in vals.iteritems():
-					for idx, rt in enumerate(rts):
-						out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
+					for idx, rt in enumerate(sorted(rts, key = lambda x: int(x))):
+						out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG&seek=0" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
 					
 		return out, fmt
 
