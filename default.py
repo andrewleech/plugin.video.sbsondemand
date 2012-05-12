@@ -64,7 +64,7 @@ def seekhack(player, url, item):
 	#if not xbmc.abortRequested:
 	print ("***", bool(addon.getSetting( "seek_hack" )))
 	
-	if url.index("seek=") >= 0:
+	if url.find("seek=") >= 0:
 		flag, lastseek = url.split("&")[-1].split("=")
 		lastseek = int(lastseek)
 		if addon.getSetting( "seek_hack" ) == "true" and flag:

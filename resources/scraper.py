@@ -101,23 +101,27 @@ class MenuItems(object):
 			soup = BeautifulSoup(contents2)
 			
 			if contents2.find('.flv') > -1:
+				fmt = '.flv'			
 				for item in soup.findAll('video'):
 					out[int(item["system-bitrate"])] = item["src"]
-					fmt = '.flv'
 			else:
 				fmt = '.mp4'
 				vals = {}
-				for item in soup.findAll('video'):
-					splts = item["src"].rsplit("/", 1)
-					hd, (tl, rate) = splts[:-1], splts[-1].rsplit("K.",1)[0].rsplit("_", 1)
-					hd = "/".join(hd)	
-					if (hd,tl) not in vals:
-						vals[hd,tl] = set([])
-					vals[hd,tl].add(rate)
-			
-				for (hd,tl),rts in vals.iteritems():
-					for idx, rt in enumerate(sorted(rts, key = lambda x: int(x))):
-						out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG&seek=0" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
+				if str(soup).find('akamaihd') <= -1:
+					for item in soup.findAll('video'):
+						out[int(item["system-bitrate"])] = item["src"]
+				else:
+					for item in soup.findAll('video'):
+						splts = item["src"].rsplit("/", 1)
+						hd, (tl, rate) = splts[:-1], splts[-1].rsplit("K.",1)[0].rsplit("_", 1)
+						hd = "/".join(hd)	
+						if (hd,tl) not in vals:
+							vals[hd,tl] = set([])
+						vals[hd,tl].add(rate)
+				
+					for (hd,tl),rts in vals.iteritems():
+						for idx, rt in enumerate(sorted(rts, key = lambda x: int(x))):
+							out[int(rt) * 1000] = "%s/%s_,%s,K.mp4.csmil/bitrate=%s?v=2.5.14&fp=WIN%%%%2011,1,102,55&r=HJHYK&g=SOENISYOINXG&seek=0" % (hd,tl, ",".join(sorted(rts, key = lambda e: int(e))), idx)
 					
 		return out, fmt
 

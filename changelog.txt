@@ -1,3 +1,6 @@
+[B]Version 1.0.9[/B]
+-news items should now work
+
 [B]Version 1.0.8[/B]
 -fixed bug in bitrate selection
 -new options in configuration settings for seeking issues(Note using these will make XBMC incorrectly report the playing point of the film):
