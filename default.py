@@ -29,8 +29,11 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 	if info:
 		liz.setInfo("video", info)
 	if not folder:
-		liz.addContextMenuItems( [("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") ))] )
-		liz.addContextMenuItems( [("Play at Seek", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=3") ))] )
+		liz.addContextMenuItems( [
+			("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") )),
+			("Play at Seek", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=3") ))
+		] )
+		
 		
 	ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz,isFolder=folder)
 	return ok

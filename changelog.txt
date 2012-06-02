@@ -1,3 +1,6 @@
+[B]Version 1.0.10[/B]
+-Fixed bug with context menu, Record to disk is now available again
+
 [B]Version 1.0.9[/B]
 -news items should now work
 
