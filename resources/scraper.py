@@ -67,7 +67,16 @@ class MenuItems(object):
 
 	def menu_shows(self, st):
 		print st
-		for entry in sorted(jsonc(geturl(st))["entries"], key = lambda x: x["title"]):
+		res = geturl(st)
+		
+		if '"status":"failed"' in res:
+			st = st.rsplit('&',1)[0]
+			print st
+			res = geturl(st)
+		
+		jsres = jsonc(res)
+			
+		for entry in sorted(jsres["entries"], key = lambda x: x["title"]):
 			hours, remainder = divmod(int(entry["media$content"][0]['plfile$duration']), 3600)
 			minutes, seconds = divmod(remainder, 60)
 			#entry["description"], entry['plmedia$defaultThumbnailUrl']
