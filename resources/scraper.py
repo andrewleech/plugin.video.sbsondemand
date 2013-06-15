@@ -102,9 +102,10 @@ class MenuItems(object):
 	def menu_play(self, lk):
 		print lk
 		contents = geturl(lk)
+		
 		out = {}
 		fmt = None
-		for mtch in re.findall(r'^[ \t]+player.releaseUrl = "(.*)";', contents, re.MULTILINE):
+		for mtch in re.findall(r"^[ \t]+standard: '(.*)'", contents, re.MULTILINE):
 			contents2 =  geturl(mtch)
 			print contents2
 			soup = BeautifulSoup(contents2)

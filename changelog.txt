@@ -1,4 +1,7 @@
 [B]Version 1.0.11[/B]
+-Upated to deal with ne page contents
+
+[B]Version 1.0.11[/B]
 -Fixed bug that stopped some menu data from being displayed
 
 [B]Version 1.0.10[/B]
