@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="plugin.video.sbs2" name="SBS2" version="1.0.12" provider-name="Denis">
+<addon id="plugin.video.sbs2" name="SBS2" version="1.0.13" provider-name="Denis">
   <requires>
-    <import addon="xbmc.python" version="1.0.2" />
+    <import addon="xbmc.python" version="2.1.0" />
   </requires>
   <extension point="xbmc.python.pluginsource" provides="video" library="default.py">
     <provides>video</provides>
