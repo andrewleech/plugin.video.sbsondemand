@@ -10,7 +10,7 @@ import resources.scraper
 
 
 ##############################################################
-ID = 'plugin.video.sbs2' #os.path.basename(os.getcwd())
+ID = 'plugin.video.sbs2' 
 __XBMC_Revision__	= xbmc.getInfoLabel('System.BuildVersion')
 __settings__		= xbmcaddon.Addon( id=ID)
 __language__		= __settings__.getLocalizedString
