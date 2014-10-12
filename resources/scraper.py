@@ -75,6 +75,7 @@ class MenuItems(object):
 			res = geturl(st)
 		
 		jsres = jsonc(res)
+		print "%%menu_shows", res
 			
 		for entry in sorted(jsres["entries"], key = lambda x: x["title"]):
 			hours, remainder = divmod(int(entry["media$content"][0]['plfile$duration']), 3600)
@@ -83,12 +84,12 @@ class MenuItems(object):
 			
 			rec  =  {
 				"title" 		: entry["title"],
-				"thumbnail"		: entry["plmedia$defaultThumbnailUrl"],
+				"thumbnail"		: entry["media$thumbnails"][0]["plfile$downloadUrl"].replace("\\", ""),
 				"url"			: 'http://www.sbs.com.au/ondemand/video/%s' % entry["id"].split('/')[-1],
 				"info"			: {
 					"Country "	: entry.get("pl1$countryOfOrigin", "?"),
 					"plot"		: entry["description"],
-					"duration"	: "%s:%s:%s" % (hours, minutes, seconds),
+					"duration"	: "%s" % ((hours * 60) + minutes),
 					"date"		: strftime("%d.%m.%Y",gmtime(entry["pubDate"]/1000)),
 					"genre"		: "%s,%s" % (entry.get("pl1$countryOfOrigin", "?"), entry["media$keywords"]),
 				}
@@ -106,7 +107,7 @@ class MenuItems(object):
 		out = {}
 		fmt = None
 		for mtch in re.findall(r"^[ \t]+standard: '(.*)'", contents, re.MULTILINE):
-			contents2 =  geturl(mtch)
+			contents2 =  geturl(mtch.split("?")[0])
 			print contents2
 			soup = BeautifulSoup(contents2)
 			
