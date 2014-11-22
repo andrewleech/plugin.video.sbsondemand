@@ -1,8 +1,9 @@
 import  urllib2 
 import  re
+import  yaml
 from    time import localtime, strftime, gmtime
 from    BeautifulSoup import BeautifulStoneSoup,BeautifulSoup, NavigableString
-import collections
+import  collections
 
 
 def geturl(url):
@@ -18,18 +19,30 @@ def jsonc(st):
         st = st.replace(i,o)
     return eval(st)
 
+def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=collections.OrderedDict):
+    class OrderedLoader(Loader):
+        pass
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+    return yaml.load(stream, OrderedLoader)
+
 
 class MenuItems(object):
     def __init__(self):
         self.base               = 'http://www.sbs.com.au/ondemand/'
         self.main_txt           = re.sub(r'^[^=]+=','', geturl(self.base + 'js/video-menu'))
-        self.main               = jsonc(self.main_txt)
+        self.main_txt           = re.sub(r'\\([^\\])', r'\1', self.main_txt).replace(r'\\\\', r'\\')
+        self.main               = ordered_load(self.main_txt, yaml.SafeLoader) #jsonc(self.main_txt)
         if 0:
             import pprint
             pprint.pprint(self.main)
-        self.cache              = {}
+        self.cache              = collections.OrderedDict()
         self.cache[tuple([])]   = {"url"        : None, "children" : self.__menu([], self.main.values())}
-        print self.main
+
 
     def __menu(self, parent, items):
         out = []
@@ -77,7 +90,8 @@ class MenuItems(object):
         jsres = jsonc(res)
         print "%%menu_shows", res
 
-        for entry in sorted(jsres["entries"], key = lambda x: x["title"]):
+#       for entry in sorted(jsres["entries"], key = lambda x: x["title"]):
+        for entry in jsres["entries"]:
             hours, remainder = divmod(int(entry["media$content"][0]['plfile$duration']), 3600)
             minutes, seconds = divmod(remainder, 60)
             #entry["description"], entry['plmedia$defaultThumbnailUrl']
@@ -108,10 +122,14 @@ class MenuItems(object):
         fmt = None
         for mtch in re.findall(r"^[ \t]+standard: '(.*)'", contents, re.MULTILINE):
             contents2 =  geturl(mtch.split("?")[0])
-            print contents2
+            #print contents2
             soup = BeautifulSoup(contents2)
 
-            if contents2.find('.flv') > -1:
+            if contents2.find('GeoLocationBlocked') > -1:
+                out['GeoLocationBlocked'] = None
+                fmt = None
+
+            elif contents2.find('.flv') > -1:
                 fmt = '.flv'
                 for item in soup.findAll('video'):
                     out[int(item["system-bitrate"])] = item["src"]

@@ -39,4 +39,7 @@
     <string id="30701">This version of %s requires an</string>
     <string id="30702">XBMC revision of %s or greater to run.</string>
     <string id="30703">Please update your XBMC.</string>
+
+    <string id="30704">Unknown Error.</string>
+    <string id="30705">Geo Location Blocked.</string>
 </strings>

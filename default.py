@@ -1,16 +1,22 @@
 import sys, os
-import collections
 import urllib
-import re
 import subprocess
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 
-from resources.BeautifulSoup import BeautifulStoneSoup,NavigableString
+trace_on = False
+# try:
+#     from pycharm_debug import pydevd
+#     pydevd.set_pm_excepthook()
+#     pydevd.settrace('alelec.local', port=51380, stdoutToServer=True, stderrToServer=True)
+#     trace_on = True
+# except BaseException as ex:
+#     pass
+
 import resources.scraper
 
 
 ##############################################################
-ID = 'plugin.video.sbs2' 
+ID = 'plugin.video.sbsondemand'
 __XBMC_Revision__   = xbmc.getInfoLabel('System.BuildVersion')
 __settings__        = xbmcaddon.Addon( id=ID)
 __language__        = __settings__.getLocalizedString
@@ -18,8 +24,15 @@ __version__         = __settings__.getAddonInfo('version')
 __cwd__             = __settings__.getAddonInfo('path')
 __addonname__       = __settings__.getAddonInfo('name')
 __addonid__         = __settings__.getAddonInfo('id')
+
+addon = xbmcaddon.Addon()
+addonID = addon.getAddonInfo('id')
+icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
 ##############################################################
 
+
+def translation(id):
+    return addon.getLocalizedString(id).encode('utf-8')
 
 def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
     name = params["name"]
@@ -33,8 +46,7 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
             ("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") )),
             ("Play at Seek", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=3") ))
         ] )
-        
-        
+
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=liz,isFolder=folder)
     return ok
 
@@ -49,16 +61,19 @@ def INDEX(params):
         for obj in scraper.menu_shows(node["url"]):
             addDir({"path" : params["path"], "name" : obj["title"], "url" : obj["url"], "mode" : params["mode"] + 1}, False, obj["info"], still = obj["thumbnail"])
     else:
-        for path in sorted(node["children"]):
+#        for path in sorted(node["children"]):
+        for path in (node["children"]):
             addDir({"path" : path, "name" : path[-1], "url" : scraper.menu_main(path)["url"], "mode" : params["mode"]}, True)
 
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )       
+    # Top two levels I want unsorted - ie the order comes from the website
+    if len(params["path"]) > 1:
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
+        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
@@ -66,7 +81,7 @@ def seekhack(player, url, item):
     addon   = xbmcaddon.Addon( id=ID )
     #if not xbmc.abortRequested:
     print ("***", bool(addon.getSetting( "seek_hack" )))
-    
+
     if url.find("seek=") >= 0:
         flag, lastseek = url.split("&")[-1].split("=")
         lastseek = int(lastseek)
@@ -78,9 +93,9 @@ def seekhack(player, url, item):
             sock.connect(("127.0.0.1", 9090))
 
             while player.isPlaying():
-                xbmc.sleep(1000)    
+                xbmc.sleep(1000)
                 print "Sniffing for notifications..."
-                
+
                 if len(select.select([sock], [], [], 0)[0]) != 0:
                     notific_str = sock.recv(4096)
                     print ("??", notific_str)
@@ -109,50 +124,57 @@ def seekhack(player, url, item):
                             player.stop()
                             #item.setProperty("StartPercent",  "20")
                             #item.setInfo("video", {"Player.Time" :  str(seek), "VideoPlayer.Time" :  str(seek)})
-                            
+
                             player.play("&".join(url.split("&")[:-1]) + "&seek={0}".format(lastseek), item)
-                            xbmc.sleep(int(addon.getSetting( "delay" )))    
+                            xbmc.sleep(int(addon.getSetting( "delay" )))
                             xbmc.executebuiltin("PlayerControl(Play)")
-                        
+
 def play(params):
     scraper = resources.scraper.SCRAPER
     addon   = xbmcaddon.Addon( id=ID )
     bitrate = int(addon.getSetting( "vid_quality" ))
     obj,fmt     = scraper.menu_play(params["url"])
-    diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]    
-    print ("using:",diff, bitrate, sbitrate, url)
-    item = xbmcgui.ListItem(params["name"])
-    
-    player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
-    player.play(url, item)
-    
-    xbmc.sleep(int(addon.getSetting( "delay" )))    
-    xbmc.executebuiltin("PlayerControl(Play)")
-    seekhack(player, url, item)
-        
+    if len(obj):
+        if 'GeoLocationBlocked' in obj:
+            xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30705))+',5000,'+icon+')')
+        else:
+            diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
+            print ("using:",diff, bitrate, sbitrate, url)
+            item = xbmcgui.ListItem(params["name"])
 
-    
+            player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
+            player.play(url, item)
+
+            xbmc.sleep(int(addon.getSetting( "delay" )))
+            xbmc.executebuiltin("PlayerControl(Play)")
+            seekhack(player, url, item)
+    else:
+        xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30704))+',50000,'+icon+')')
+
+
+
+
 def play_at_seek(params):
     offset = False
     keyboard = xbmc.Keyboard('')
     keyboard.doModal()
     if (keyboard.isConfirmed()):
-      offset = int(keyboard.getText())
-      
+        offset = int(keyboard.getText())
+
 
     if offset != False:
         scraper = resources.scraper.SCRAPER
         addon   = xbmcaddon.Addon( id=ID )
         bitrate = int(addon.getSetting( "vid_quality" ))
         obj,fmt     = scraper.menu_play(params["url"])
-        diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]    
+        diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
         print ("using:",diff, bitrate, sbitrate, url, obj.iteritems)
         item = xbmcgui.ListItem(params["name"])
-        
+
         player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
         player.play("&".join(url.split("&")[:-1]) + "&seek={0}".format(offset), item)
-        
-        xbmc.sleep(int(addon.getSetting( "delay" )))    
+
+        xbmc.sleep(int(addon.getSetting( "delay" )))
         xbmc.executebuiltin("PlayerControl(Play)")
         seekhack(player, url, item)
 
@@ -167,25 +189,25 @@ def record(params):
     addon   = xbmcaddon.Addon( id=ID )
     bitrate = int(addon.getSetting( "vid_quality" ))
     obj,fmt     = scraper.menu_play(params["url"])
-    diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]    
+    diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]
     print ("using:",diff, bitrate, sbitrate, url)
     name= '%s%s%s' % (
-            __settings__.getSetting( "path" ), 
+            __settings__.getSetting( "path" ),
             "".join(rpt(c) for c in str(params["name"])),
             fmt
         )
     args = (
-        __settings__.getSetting( "ffmpeg" ), 
+        __settings__.getSetting( "ffmpeg" ),
         '-i',  url,
         "-vcodec", "copy",
-        "-acodec", "copy", 
+        "-acodec", "copy",
         name
     )
     startupinfo = None
     if os.name == 'nt':
         startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW      
-    
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
     print " ".join(args)
     sout = open(name+".fmpeg.out", "w")
     serr = open(name+".ffmpeg.err", "w")
@@ -196,7 +218,7 @@ def record(params):
         serr.close()
     #print xx.stdout.read()
     #print xx.stderr.read()
-    
+
 ##############################################################
 MODE_MAP    = {
     0   : lambda params:    INDEX(params),
@@ -231,6 +253,8 @@ def main():
     params = parse_args(sys.argv)
     print "##", sys.argv, params
     MODE_MAP[params["mode"]](params)
-    
+
 
 main()
+if trace_on:
+    pydevd.stoptrace()
