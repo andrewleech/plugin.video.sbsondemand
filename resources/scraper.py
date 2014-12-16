@@ -1,10 +1,9 @@
-import  urllib2 
+import  urllib2
 import  re
 import  yaml
 from    time import localtime, strftime, gmtime
 from    BeautifulSoup import BeautifulStoneSoup,BeautifulSoup, NavigableString
-import  collections
-
+from    ordereddict import OrderedDict
 
 def geturl(url):
     #, headers = {"Accept-Encoding":"gzip"}
@@ -19,7 +18,7 @@ def jsonc(st):
         st = st.replace(i,o)
     return eval(st)
 
-def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=collections.OrderedDict):
+def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     class OrderedLoader(Loader):
         pass
     def construct_mapping(loader, node):
@@ -40,7 +39,7 @@ class MenuItems(object):
         if 0:
             import pprint
             pprint.pprint(self.main)
-        self.cache              = collections.OrderedDict()
+        self.cache              = OrderedDict()
         self.cache[tuple([])]   = {"url"        : None, "children" : self.__menu([], self.main.values())}
 
 
@@ -141,12 +140,16 @@ class MenuItems(object):
                         out[int(item["system-bitrate"])] = item["src"]
                 else:
                     for item in soup.findAll('video'):
-                        splts = item["src"].rsplit("/", 1)
-                        hd, (tl, rate) = splts[:-1], splts[-1].rsplit("K.",1)[0].rsplit("_", 1)
-                        hd = "/".join(hd)
-                        if (hd,tl) not in vals:
-                            vals[hd,tl] = set([])
-                        vals[hd,tl].add(rate)
+                        try:
+                            splts = item["src"].split("/manifest.f4m")[0].rsplit("/", 1)
+                            hd = splts[:-1]
+                            tl, rate = splts[-1].rsplit("K.",1)[0].rsplit("_", 1)
+                            hd = "/".join(hd)
+                            if (hd,tl) not in vals:
+                                vals[hd,tl] = set([])
+                            vals[hd,tl].add(rate)
+                        except (ValueError, IndexError):
+                            pass
 
                     for (hd,tl),rts in vals.iteritems():
                         for idx, rt in enumerate(sorted(rts, key = lambda x: int(x))):

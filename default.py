@@ -7,7 +7,7 @@ trace_on = False
 # try:
 #     from pycharm_debug import pydevd
 #     pydevd.set_pm_excepthook()
-#     pydevd.settrace('alelec.local', port=51380, stdoutToServer=True, stderrToServer=True)
+#     pydevd.settrace('192.168.0.16', port=51380, stdoutToServer=True, stderrToServer=True)
 #     trace_on = True
 # except BaseException as ex:
 #     pass
