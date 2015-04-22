@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="plugin.video.sbsondemand" name="SBS ON DEMAND" version="1.0.16" provider-name="bog.gob/corona">
+<addon id="plugin.video.sbsondemand" name="SBS ON DEMAND" version="1.0.17" provider-name="bog.gob/corona">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="script.module.beautifulsoup" version="3.2.1" />
