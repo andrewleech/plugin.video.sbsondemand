@@ -13,6 +13,7 @@ trace_on = False
 #     pass
 
 import resources.scraper
+SCRAPER = resources.scraper.MenuItems()
 
 
 ##############################################################
@@ -53,17 +54,16 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 ##############################################################
 def INDEX(params):
     addon = xbmcaddon.Addon( id=ID)
-    scraper = resources.scraper.SCRAPER
 
-    node = scraper.menu_main(params["path"])
+    node = SCRAPER.menu_main(params["path"])
 
     if not node["children"]:
-        for obj in scraper.menu_shows(node["url"]):
+        for obj in SCRAPER.menu_shows(node["url"]):
             addDir({"path" : params["path"], "name" : obj["title"], "url" : obj["url"], "mode" : params["mode"] + 1}, False, obj["info"], still = obj["thumbnail"])
     else:
 #        for path in sorted(node["children"]):
         for path in (node["children"]):
-            addDir({"path" : path, "name" : path[-1], "url" : scraper.menu_main(path)["url"], "mode" : params["mode"]}, True)
+            addDir({"path" : path, "name" : path[-1], "url" : SCRAPER.menu_main(path)["url"], "mode" : params["mode"]}, True)
 
     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
     # Top two levels I want unsorted - ie the order comes from the website
@@ -130,10 +130,9 @@ def seekhack(player, url, item):
                             xbmc.executebuiltin("PlayerControl(Play)")
 
 def play(params):
-    scraper = resources.scraper.SCRAPER
     addon   = xbmcaddon.Addon( id=ID )
     bitrate = int(addon.getSetting( "vid_quality" ))
-    obj,fmt     = scraper.menu_play(params["url"])
+    obj,fmt     = SCRAPER.menu_play(params["url"])
     if len(obj):
         if 'GeoLocationBlocked' in obj:
             xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30705))+',5000,'+icon+')')
@@ -163,10 +162,9 @@ def play_at_seek(params):
 
 
     if offset != False:
-        scraper = resources.scraper.SCRAPER
         addon   = xbmcaddon.Addon( id=ID )
         bitrate = int(addon.getSetting( "vid_quality" ))
-        obj,fmt     = scraper.menu_play(params["url"])
+        obj,fmt     = SCRAPER.menu_play(params["url"])
         diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
         print ("using:",diff, bitrate, sbitrate, url, obj.iteritems)
         item = xbmcgui.ListItem(params["name"])
@@ -185,10 +183,9 @@ def record(params):
         else:
             return "_"
     print params
-    scraper = resources.scraper.SCRAPER
     addon   = xbmcaddon.Addon( id=ID )
     bitrate = int(addon.getSetting( "vid_quality" ))
-    obj,fmt     = scraper.menu_play(params["url"])
+    obj,fmt     = SCRAPER.menu_play(params["url"])
     diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]
     print ("using:",diff, bitrate, sbitrate, url)
     name= '%s%s%s' % (

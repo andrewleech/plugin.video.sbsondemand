@@ -1,9 +1,9 @@
 import  urllib2
 import  re
-import  yaml
+from    time import strftime, gmtime
 from    time import localtime, strftime, gmtime
 from    BeautifulSoup import BeautifulStoneSoup,BeautifulSoup, NavigableString
-from    ordereddict import OrderedDict
+
 
 def geturl(url):
     #, headers = {"Accept-Encoding":"gzip"}
@@ -18,28 +18,36 @@ def jsonc(st):
         st = st.replace(i,o)
     return eval(st)
 
-def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
-    class OrderedLoader(Loader):
-        pass
-    def construct_mapping(loader, node):
-        loader.flatten_mapping(node)
-        return object_pairs_hook(loader.construct_pairs(node))
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        construct_mapping)
-    return yaml.load(stream, OrderedLoader)
+# import yaml
+# from    ordereddict import OrderedDict
+# def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+#     class OrderedLoader(Loader):
+#         pass
+#     def construct_mapping(loader, node):
+#         loader.flatten_mapping(node)
+#         return object_pairs_hook(loader.construct_pairs(node))
+#     OrderedLoader.add_constructor(
+#         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+#         construct_mapping)
+#     return yaml.load(stream, OrderedLoader)
 
 
 class MenuItems(object):
     def __init__(self):
+        import orderedjson
+
         self.base               = 'http://www.sbs.com.au/ondemand/'
-        self.main_txt           = re.sub(r'^[^=]+=','', geturl(self.base + 'js/video-menu'))
-        self.main_txt           = re.sub(r'\\([^\\])', r'\1', self.main_txt).replace(r'\\\\', r'\\')
-        self.main               = ordered_load(self.main_txt, yaml.SafeLoader) #jsonc(self.main_txt)
+        self.raw_txt            = geturl(self.base + 'js/video-menu')
+        self.main_txt           = re.sub(r'^[^=]+=','', self.raw_txt)
+        #self.main_txt           = re.sub(r'\\([^\\])', r'\1', self.main_txt).replace(r'\\\\', r'\\')
+
+        self.main               = orderedjson.loads(self.main_txt)
+
+        #self.main               = ordered_load(self.main_txt, yaml.SafeLoader) #jsonc(self.main_txt)
         if 0:
             import pprint
             pprint.pprint(self.main)
-        self.cache              = OrderedDict()
+        self.cache              = orderedjson.ordereddict.OrderedDict()
         self.cache[tuple([])]   = {"url"        : None, "children" : self.__menu([], self.main.values())}
 
 
@@ -178,5 +186,3 @@ if __name__ == "__main__":
     PrettyPrinter(indent=1).pprint(shows)
     print "#" * 30
     PrettyPrinter(indent=1).pprint(m.menu_play(shows[2]["url"]))
-else:
-    SCRAPER = MenuItems()
