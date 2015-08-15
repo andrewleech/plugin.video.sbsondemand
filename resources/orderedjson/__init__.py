@@ -34,7 +34,7 @@ identifier2 = None
 
 if float(".".join(platform.python_version_tuple()[0:2])) > 2.6: # Newer than 2.6
     import json
-    import ordereddict
+
 
 else:
     ## Platform Identifiers
@@ -55,11 +55,12 @@ else:
             sys.path.append(path)
 
     import simplejson as json
-    import ordereddict
+
+from ordereddict import OrderedDict
 
 
 def loads(*args, **kwargs):
-    kwargs["object_pairs_hook"] = ordereddict.OrderedDict
+    kwargs["object_pairs_hook"] = OrderedDict
     return json.loads(*args, **kwargs)
 
 if __name__ == "__main__":

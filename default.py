@@ -1,20 +1,21 @@
 import sys, os
 import urllib
+import urlparse
 import subprocess
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 
 trace_on = False
 # try:
-#     from pycharm_debug import pydevd
-#     pydevd.set_pm_excepthook()
-#     pydevd.settrace('192.168.0.16', port=51380, stdoutToServer=True, stderrToServer=True)
-#     trace_on = True
-# except BaseException as ex:
-#     pass
+if False:
+    pydev_egg="/Applications/PyCharm.app/Contents/debug-eggs/pycharm-debug.egg"
+    if pydev_egg not in sys.path:
+        sys.path.insert(0,pydev_egg)
+    import pydevd
+    pydevd.settrace('192.168.0.16', port=51380, stdoutToServer=True, stderrToServer=True)
+    trace_on = True
 
 import resources.scraper
-SCRAPER = resources.scraper.MenuItems()
-
+MenuItems = resources.scraper.MenuItems()
 
 ##############################################################
 ID = 'plugin.video.sbsondemand'
@@ -35,10 +36,13 @@ icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
 def translation(id):
     return addon.getLocalizedString(id).encode('utf-8')
 
-def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
-    name = params["name"]
-    url =  sys.argv[0] + "?" + "&".join(["%s=%s" % (urllib.quote_plus(k),urllib.quote_plus(str(v)))    for k, v in params.items()])
-    print "::", url,  params, info, "%%"
+def addDir(params, folder = False, info = None, still="DefaultFolder.png"):
+    name = params['name']
+    url =  sys.argv[0] + "?" + urllib.urlencode(params)
+    a_info = ""
+    if info:
+        a_info = unicode(info).encode('utf8')
+    print "::", url,  params, a_info, "%%"
     liz=xbmcgui.ListItem(name, iconImage=still, thumbnailImage="")
     if info:
         liz.setInfo("video", info)
@@ -53,27 +57,78 @@ def addDir(params, folder = False, info = {}, still="DefaultFolder.png"):
 
 ##############################################################
 def INDEX(params):
-    addon = xbmcaddon.Addon( id=ID)
+    from resources.sbsOnDemand import SbsOnDemand
+    # addon = xbmcaddon.Addon( id=ID)
 
-    node = SCRAPER.menu_main(params["path"])
+    menu = {}
+    if not params['feedId']:
+        menu = SbsOnDemand.Feed.getDefaultFeeds()
+        startIndex = 0
 
-    if not node["children"]:
-        for obj in SCRAPER.menu_shows(node["url"]):
-            addDir({"path" : params["path"], "name" : obj["title"], "url" : obj["url"], "mode" : params["mode"] + 1}, False, obj["info"], still = obj["thumbnail"])
+        for name, feed in menu.iteritems():
+            addDir(params={  'name':name,
+                             'feedId':feed.feedId,
+                             'mode' : params["mode"],
+                             'startIndex': startIndex,
+                             'itemsPerPage': 40,
+                             },
+                   folder=True)
+
     else:
-#        for path in sorted(node["children"]):
-        for path in (node["children"]):
-            addDir({"path" : path, "name" : path[-1], "url" : SCRAPER.menu_main(path)["url"], "mode" : params["mode"]}, True)
+        menu = SbsOnDemand.Feed.Feed(params)
+        startIndex = int(params.get('startIndex') or 0)
+        itemsPerPage = int(params.get('itemsPerPage') or 40)
+        videos = menu.getVideos(startIndex = startIndex, itemsPerPage = itemsPerPage)
 
-    xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
-    # Top two levels I want unsorted - ie the order comes from the website
-    if len(params["path"]) > 1:
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
-        xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
+        if videos:
+            for video in videos:
+                # TODO add bitrate selection based on settings, rather than highest
+                prevBitrate = 0
+                url = None
+                webdriver = False
+                for content in video.getMedia().get('content'):
+                    if content.contentType == 'video' and content.bitrate > prevBitrate:# and content.url:
+                        url = content.videoUrl
+                        webdriver = content.format == SbsOnDemand.Media.TYPE_BROWSER
+                        prevBitrate = content.bitrate
+
+                if url:
+                    addDir(params={ 'name':video.title,
+                                    'feedId':params['feedId'],
+                                    'mode' : params["mode"]+1,
+                                    'url' : url,
+                                    'webdriver' : webdriver,
+                                 },
+                           folder=False,
+                           info=video.description,
+                           still=video.thumbnail
+                           )
+
+            addDir(params={  'name':"Next Page",
+                             'feedId':params['feedId'],
+                             'mode' : params["mode"],
+                             'startIndex': startIndex + len(videos),
+                             'itemsPerPage': itemsPerPage,
+                             },
+                   folder=True)
+
+#     if not node["children"]:
+#         for obj in MenuItems.menu_shows(node["url"]):
+#             addDir({"path" : params["path"], "name" : obj["title"], "url" : obj["url"], "mode" : params["mode"] + 1}, False, obj["info"], still = obj["thumbnail"])
+#     else:
+# #        for path in sorted(node["children"]):
+#         for path in (node["children"]):
+#             addDir({"path" : path, "name" : path[-1], "url" : node["children"][path]["url"], "mode" : params["mode"]}, True)
+#
+#     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
+#     # Top two levels I want unsorted - ie the order comes from the website
+#     if len(params["path"]) > 1:
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
+#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
@@ -129,28 +184,47 @@ def seekhack(player, url, item):
                             xbmc.sleep(int(addon.getSetting( "delay" )))
                             xbmc.executebuiltin("PlayerControl(Play)")
 
+webdriver_instance = None
+
+def webDriver():
+    global webdriver_instance
+    if webdriver_instance is None:
+        import webdriver
+        webdriver_instance = webdriver.Browser()
+        # import webdriver_plugin
+        # pluginfile = webdriver_plugin.__file__
+        # webdriver_instance.register_plugin(webdriver_plugin.PLUGIN_NAME, pluginfile)
+    return webdriver_instance
+
+
 def play(params):
-    addon   = xbmcaddon.Addon( id=ID )
-    bitrate = int(addon.getSetting( "vid_quality" ))
-    obj,fmt     = SCRAPER.menu_play(params["url"])
-    if len(obj):
-        if 'GeoLocationBlocked' in obj:
-            xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30705))+',5000,'+icon+')')
-        else:
-            diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
-            print ("using:",diff, bitrate, sbitrate, url)
-            item = xbmcgui.ListItem(params["name"])
-
-            player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
-            player.play(url, item)
-
-            xbmc.sleep(int(addon.getSetting( "delay" )))
-            xbmc.executebuiltin("PlayerControl(Play)")
-            seekhack(player, url, item)
+    if params.get('webdriver', False):
+        # import webdriver
+        browser = webDriver()
+        browser.get(params['url'])
+        # browser.bring_browser_to_front()
+        browser.show_control_window('//*[@id="player"]')
+        browser.close()
     else:
-        xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30704))+',50000,'+icon+')')
+        addon   = xbmcaddon.Addon( id=ID )
+        bitrate = int(addon.getSetting( "vid_quality" ))
+        obj,fmt     = MenuItems.menu_play(params["url"])
+        if len(obj):
+            if 'GeoLocationBlocked' in obj:
+                xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30705))+',5000,'+icon+')')
+            else:
+                diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
+                print ("using:",diff, bitrate, sbitrate, url)
+                item = xbmcgui.ListItem(params["name"])
 
+                player = xbmc.Player(xbmc.PLAYER_CORE_AUTO)
+                player.play(url, item)
 
+                xbmc.sleep(int(addon.getSetting( "delay" )))
+                xbmc.executebuiltin("PlayerControl(Play)")
+                seekhack(player, url, item)
+        else:
+            xbmc.executebuiltin('XBMC.Notification(SBS:,'+str(translation(30704))+',50000,'+icon+')')
 
 
 def play_at_seek(params):
@@ -164,7 +238,7 @@ def play_at_seek(params):
     if offset != False:
         addon   = xbmcaddon.Addon( id=ID )
         bitrate = int(addon.getSetting( "vid_quality" ))
-        obj,fmt     = SCRAPER.menu_play(params["url"])
+        obj,fmt     = MenuItems.menu_play(params["url"])
         diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, pl) for sbitrate, pl in sorted(obj.iteritems())])[0]
         print ("using:",diff, bitrate, sbitrate, url, obj.iteritems)
         item = xbmcgui.ListItem(params["name"])
@@ -185,7 +259,7 @@ def record(params):
     print params
     addon   = xbmcaddon.Addon( id=ID )
     bitrate = int(addon.getSetting( "vid_quality" ))
-    obj,fmt     = SCRAPER.menu_play(params["url"])
+    obj,fmt     = MenuItems.menu_play(params["url"])
     diff, sbitrate, url = sorted([(abs(int(sbitrate) - int(bitrate)), sbitrate, play) for sbitrate, play in sorted(obj.iteritems())])[0]
     print ("using:",diff, bitrate, sbitrate, url)
     name= '%s%s%s' % (
@@ -216,27 +290,14 @@ def record(params):
     #print xx.stdout.read()
     #print xx.stderr.read()
 
-##############################################################
-MODE_MAP    = {
-    0   : lambda params:    INDEX(params),
-    1   : lambda url:       play(url),
-    2   : lambda params:    record(params),
-    3   : lambda params:    play_at_seek(params)
-}
-
 
 def parse_args(args):
     out = {}
     if args[2]:
-        for item in (args[2].split("?")[-1].split("&")):
-#           print item
-            items = item.split("=")
-            k,v = items[0], "=".join(items[1:])
-            out[k] = urllib.unquote_plus(v)
-        out["path"] = eval(out["path"])
+        out = dict(urlparse.parse_qsl(args[2].strip('?')))
     else:
         out["mode"]     = "0"
-        out["path"]     = []
+        out["feedId"]   = []
         out["url"]      = ""
 
     out["mode"] = int(out["mode"])
@@ -249,9 +310,19 @@ def main():
 #   return
     params = parse_args(sys.argv)
     print "##", sys.argv, params
-    MODE_MAP[params["mode"]](params)
+    {
+    0   : lambda params:    INDEX(params),
+    1   : lambda url:       play(url),
+    2   : lambda params:    record(params),
+    3   : lambda params:    play_at_seek(params)
+    }[params["mode"]](params)
 
-
-main()
-if trace_on:
-    pydevd.stoptrace()
+try:
+    main()
+except Exception as ex:
+    print __import__('traceback').format_exc()
+    print str(ex)
+    raise
+finally:
+    if trace_on:
+        pydevd.stoptrace()
