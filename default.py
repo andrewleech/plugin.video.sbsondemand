@@ -190,10 +190,11 @@ def webDriver():
     global webdriver_instance
     if webdriver_instance is None:
         import webdriver
+        from resources import webdriver_plugin
+
         webdriver_instance = webdriver.Browser()
-        # import webdriver_plugin
-        # pluginfile = webdriver_plugin.__file__
-        # webdriver_instance.register_plugin(webdriver_plugin.PLUGIN_NAME, pluginfile)
+        pluginfile = webdriver_plugin.__file__
+        webdriver_instance.register_plugin(webdriver_plugin.PLUGIN_NAME, pluginfile)
     return webdriver_instance
 
 
@@ -201,9 +202,12 @@ def play(params):
     if params.get('webdriver', False):
         # import webdriver
         browser = webDriver()
-        browser.get(params['url'])
+        url = params['url']
+
+        browser.get(url)
         # browser.bring_browser_to_front()
-        browser.show_control_window('//*[@id="player"]')
+        from resources.webdriver_plugin import SBS_KEYMAP, jsTargetBy, jsTarget
+        browser.show_control_window(jsTargetBy, jsTarget, SBS_KEYMAP)
         browser.close()
     else:
         addon   = xbmcaddon.Addon( id=ID )
