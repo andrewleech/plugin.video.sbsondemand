@@ -1,11 +1,12 @@
 import sys, os
+import json
 import urllib
 import urlparse
 import subprocess
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 
 trace_on = False
-# try:
+# if True:
 if False:
     pydev_egg="/Applications/PyCharm.app/Contents/debug-eggs/pycharm-debug.egg"
     if pydev_egg not in sys.path:
@@ -38,6 +39,9 @@ def translation(id):
 
 def addDir(params, folder = False, info = None, still="DefaultFolder.png"):
     name = params['name']
+    if isinstance(name, unicode):
+        params['name'] = name.encode('utf8')
+        # name = name.decode('utf-8')
     url =  sys.argv[0] + "?" + urllib.urlencode(params)
     a_info = ""
     if info:
@@ -45,7 +49,8 @@ def addDir(params, folder = False, info = None, still="DefaultFolder.png"):
     print "::", url,  params, a_info, "%%"
     liz=xbmcgui.ListItem(name, iconImage=still, thumbnailImage="")
     if info:
-        liz.setInfo("video", info)
+        liz.setInfo( type="Video", infoLabels={ "Title":name, "Plot":info})#, "Genre":genre})
+        #liz.setInfo("video", {'tagline':info})
     if not folder:
         liz.addContextMenuItems( [
             ("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") )),
@@ -60,41 +65,62 @@ def INDEX(params):
     from resources.sbsOnDemand import SbsOnDemand
     # addon = xbmcaddon.Addon( id=ID)
 
-    menu = {}
-    if not params['feedId']:
-        menu = SbsOnDemand.Feed.getDefaultFeeds()
+    feed = None
+
+    if not params.get('feedId'):
+        # menu = SbsOnDemand.Feed.getDefaultFeeds()
+        menu = SbsOnDemand.Menu.Menu(params.get('path')).getMenu()
         startIndex = 0
 
-        for name, feed in menu.iteritems():
-            addDir(params={  'name':name,
-                             'feedId':feed.feedId,
+        if isinstance(menu, list):
+            for name, item in menu:
+                if isinstance(item, SbsOnDemand.Feed.Feed):
+                    params={ 'name': name,
+                             'feedId': item.feedId,
+                             'feedFilter': json.dumps(item.filter),
                              'mode' : params["mode"],
                              'startIndex': startIndex,
                              'itemsPerPage': 40,
-                             },
-                   folder=True)
+                             }
+                elif isinstance(item, SbsOnDemand.Menu.Menu):
+                    params={ 'name':name,
+                             'path':item.path,
+                             'mode' : params["mode"],
+                             'startIndex': startIndex,
+                             'itemsPerPage': 40,
+                             }
+                else:
+                    raise NotImplementedError
+                addDir(params, folder=True, still=icon)
+        elif isinstance(menu, tuple):
+            name, feed = menu
 
     else:
-        menu = SbsOnDemand.Feed.Feed(params)
+        if 'feedFilter' in params:
+            params['filter'] = json.loads(params['feedFilter'])
+        feed = SbsOnDemand.Feed.Feed(params)
+
+    if feed:
         startIndex = int(params.get('startIndex') or 0)
         itemsPerPage = int(params.get('itemsPerPage') or 40)
-        videos = menu.getVideos(startIndex = startIndex, itemsPerPage = itemsPerPage)
+        videos = feed.getVideos(startIndex = startIndex, itemsPerPage = itemsPerPage)
 
         if videos:
             for video in videos:
                 # TODO add bitrate selection based on settings, rather than highest
+                # TODO this is pretty slow :-( ditch the search for direct video feeds?
                 prevBitrate = 0
                 url = None
                 webdriver = False
                 for content in video.getMedia().get('content'):
-                    if content.contentType == 'video' and content.bitrate > prevBitrate:# and content.url:
+                    if content.contentType == 'video' and (content.bitrate > prevBitrate or content.bitrate is None):# and content.url:
                         url = content.videoUrl
                         webdriver = content.format == SbsOnDemand.Media.TYPE_BROWSER
                         prevBitrate = content.bitrate
 
                 if url:
                     addDir(params={ 'name':video.title,
-                                    'feedId':params['feedId'],
+                                    'feedId':feed.feedId,
                                     'mode' : params["mode"]+1,
                                     'url' : url,
                                     'webdriver' : webdriver,
@@ -104,31 +130,15 @@ def INDEX(params):
                            still=video.thumbnail
                            )
 
-            addDir(params={  'name':"Next Page",
-                             'feedId':params['feedId'],
-                             'mode' : params["mode"],
-                             'startIndex': startIndex + len(videos),
-                             'itemsPerPage': itemsPerPage,
-                             },
-                   folder=True)
-
-#     if not node["children"]:
-#         for obj in MenuItems.menu_shows(node["url"]):
-#             addDir({"path" : params["path"], "name" : obj["title"], "url" : obj["url"], "mode" : params["mode"] + 1}, False, obj["info"], still = obj["thumbnail"])
-#     else:
-# #        for path in sorted(node["children"]):
-#         for path in (node["children"]):
-#             addDir({"path" : path, "name" : path[-1], "url" : node["children"][path]["url"], "mode" : params["mode"]}, True)
-#
-#     xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_UNSORTED )
-#     # Top two levels I want unsorted - ie the order comes from the website
-#     if len(params["path"]) > 1:
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_LABEL )
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RATING )
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_DATE )
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_PROGRAM_COUNT )
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_VIDEO_RUNTIME )
-#         xbmcplugin.addSortMethod( handle=int( sys.argv[ 1 ] ), sortMethod=xbmcplugin.SORT_METHOD_GENRE )
+            if feed.totalResults and feed.totalResults > len(videos):
+                addDir(params={  'name':"Next Page",
+                                 'feedId':feed.feedId,
+                                 'feedFilter': json.dumps(feed.filter),
+                                 'mode' : params["mode"],
+                                 'startIndex': startIndex + len(videos),
+                                 'itemsPerPage': itemsPerPage,
+                                 },
+                       folder=True)
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
