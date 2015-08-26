@@ -42,4 +42,8 @@
 
     <string id="30704">Unknown Error.</string>
     <string id="30705">Geo Location Blocked.</string>
+
+    <string id="30801">Use browser for all playback (else just for fallback)</string>
+    <string id="30802">Open browser addon settings</string>
+
 </strings>
