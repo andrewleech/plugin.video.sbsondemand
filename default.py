@@ -14,8 +14,6 @@ if False:
     pydevd.settrace('192.168.0.16', port=51380, stdoutToServer=True, stderrToServer=True)
     trace_on = True
 
-# import resources.scraper
-# MenuItems = resources.scraper.MenuItems()
 
 ##############################################################
 ID = 'plugin.video.sbsondemand'
@@ -40,7 +38,8 @@ def addDir(params, folder = False, info = None, still="DefaultFolder.png"):
     name = params['name']
     if isinstance(name, unicode):
         params['name'] = name.encode('utf8')
-
+    if isinstance(params.get('feedPath'), unicode):
+        params['feedPath'] = params['feedPath'].encode('utf8')
     url =  sys.argv[0] + "?" + urllib.urlencode(params)
     a_info = ""
     if info:
@@ -49,7 +48,7 @@ def addDir(params, folder = False, info = None, still="DefaultFolder.png"):
     liz=xbmcgui.ListItem(name, iconImage=still, thumbnailImage="")
     if info:
         liz.setInfo( type="Video", infoLabels={ "Title":name, "Plot":info})#, "Genre":genre})
-        #liz.setInfo("video", {'tagline':info})
+
     if not folder:
         liz.addContextMenuItems( [
             ("Record to disk", "XBMC.RunPlugin(%s?&%s)"   % (sys.argv[0], url.replace("mode=1", "mode=2") )),
@@ -85,13 +84,8 @@ def Menu(params):
         if isinstance(menu, list):
             for name, item in menu:
                 if isinstance(item, SbsOnDemand.Feed.Feed):
-                    params={ 'name': name,
-                             'feedId': item.feedId,
-                             'feedFilter': json.dumps(item.filter),
-                             'mode' : params["mode"],
-                             'startIndex': startIndex,
-                             'itemsPerPage': 40,
-                             }
+                    feed = item
+
                 elif isinstance(item, SbsOnDemand.Menu.Menu):
                     params={ 'name':name,
                              'path':item.path,
@@ -99,9 +93,10 @@ def Menu(params):
                              'startIndex': startIndex,
                              'itemsPerPage': 40,
                              }
+                    addDir(params, folder=True, still=icon)
                 else:
                     raise NotImplementedError
-                addDir(params, folder=True, still=icon)
+
         elif isinstance(menu, tuple):
             name, feed = menu
 
@@ -116,22 +111,41 @@ def Menu(params):
         videos = feed.getVideos(startIndex = startIndex, itemsPerPage = itemsPerPage)
 
         if videos:
+            videos_len = len(videos)
+            # TODO Get feed sorted by pubdate to start with
+
+            # Group by programname
+            shows = {}
             for video in videos:
+                if isinstance(video, SbsOnDemand.Video.Video):
+                    programName = video.programName if video.programName else video.title
+                    program = shows.get(programName, [])
+                    program.append(video)
+                    shows[programName] = sorted(program, key=lambda f:f.pubDate)
 
-                browser_only = True #__settings__.getSetting('browser_only')
+            if len(shows.values()) and len(shows.values()) != len(videos): # Grouping did find differences
+                feedPath = params.get('feedPath', '')
+                if not feedPath:
+                    for show in shows.keys():
+                        new_params = params.copy()
+                        new_params['feedPath'] = show
+                        new_params['name'] = show
+                        # TODO add some description, thumb?
+                        addDir(params=new_params, folder=True)
+                        videos = [] # don't display any more videos
+                else:
+                    videos = shows.get(feedPath, [])
+                    if len(videos):
+                        single_feed = videos[0]
+                        if single_feed.pilatDealcode:
+                            byCustomValue = "{pilatDealcode}{%s},{useType}{Full Episode}" % single_feed.pilatDealcode
+                            series_feed = SbsOnDemand.Feed.Feed({"feedId": feed.feedId,
+                                                            "filter": {"byCustomValue": byCustomValue}})
+                            videos = series_feed.getVideos(startIndex = 0, itemsPerPage = itemsPerPage)
 
-                prevBitrate = 0
-                url = None
-                webdriver = False
-                medias = video.getMedia().get('content')
-                for content in medias:
-                    if content.contentType == 'video' and (content.bitrate > prevBitrate or content.bitrate is None):# and content.url:
-                        if browser_only:
-                            url = content.browserUrl # much quicker
-                        else:
-                            url = content.videoUrl
-                        webdriver = content.format == SbsOnDemand.Media.TYPE_BROWSER
-                        prevBitrate = content.bitrate
+            for video in videos:
+                url = video.getBrowserUrl()
+                webdriver = True
 
                 if url:
                     addDir(params={ 'name':video.title,
@@ -145,7 +159,7 @@ def Menu(params):
                            still=video.thumbnail
                            )
 
-            if feed.totalResults and feed.totalResults > len(videos):
+            if itemsPerPage == videos_len:
                 addDir(params={  'name':"Next Page",
                                  'feedId':feed.feedId,
                                  'feedFilter': json.dumps(feed.filter),
