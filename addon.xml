@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="plugin.video.sbsondemand" name="SBS ON DEMAND" version="2.0.0~alpha" provider-name="bog.gob/corona">
+<addon id="plugin.video.sbsondemand" name="SBS ON DEMAND" version="2.0.0" provider-name="corona">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="script.module.beautifulsoup" version="3.2.1" />
@@ -11,7 +11,7 @@
   </extension>
   <extension point="xbmc.addon.metadata" library="default.py">
     <summary>SBS ON DEMAND</summary>
-    <description>SBS On Demand service. Forked form plugin.video.sbs2</description>
+    <description>SBS On Demand service.</description>
     <provides>video</provides>
     <platform>all</platform>
     <disclaimer>You must be within Australia to use watch these videos.[CR]"SBS", SBS Logos and other works are copyright of their respective owners.</disclaimer>
