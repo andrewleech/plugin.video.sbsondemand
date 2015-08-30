@@ -119,29 +119,27 @@ def Menu(params):
                     if isinstance(item[0], SbsOnDemand.Video.Video):
                         still = item[0].thumbnail
                         info = item[0].description
-    else:
+                    else:
                         still = icon
                         info = ""
                     addDir(params, folder=True, still=still, info=info)
 
                 elif isinstance(item, SbsOnDemand.Video.Video):
                     video = item
-                url = video.getBrowserUrl()
-                webdriver = True
+                    url = video.getBrowserUrl()
+                    webdriver = True
 
-                if url:
-                    addDir(params={ 'name':video.title,
+                    if url:
+                        addDir(params={ 'name':video.title,
                                         # 'feedId':feed.feedId,
-                                    'mode' : 'playVideo',
-                                    'url' : url,
-                                    'webdriver' : webdriver,
-                                 },
-                           folder=False,
-                           info=video.description,
-                           still=video.thumbnail
-                           )
-
-
+                                        'mode' : 'playVideo',
+                                        'url' : url,
+                                        'webdriver' : webdriver,
+                                     },
+                               folder=False,
+                               info=video.description,
+                               still=video.thumbnail
+                               )
                 else:
                     raise NotImplementedError
 
@@ -151,77 +149,6 @@ def Menu(params):
                                    'itemsPerPage': itemsPerPage})
                 addDir(params=new_params, folder=True)
 
-
-
-    # else:
-    #     if 'feedFilter' in params:
-    #         params['filter'] = json.loads(params['feedFilter'])
-    #     feed = SbsOnDemand.Feed.Feed(params)
-    #
-    # if feed:
-    #     startIndex = int(params.get('startIndex') or 0)
-    #     itemsPerPage = int(params.get('itemsPerPage') or 40)
-    #     videos = feed.getVideos(startIndex = startIndex, itemsPerPage = itemsPerPage)
-
-        # if videos:
-        #     videos_len = len(videos)
-        #     # TODO Get feed sorted by pubdate to start with
-        #
-        #     # Group by programname
-        #     shows = {}
-        #     for video in videos:
-        #         if isinstance(video, SbsOnDemand.Video.Video):
-        #             programName = video.programName if video.programName else video.title
-        #             program = shows.get(programName, [])
-        #             program.append(video)
-        #             shows[programName] = sorted(program, key=lambda f:f.pubDate)
-        #
-        #     if len(shows.values()) and len(shows.values()) != len(videos): # Grouping did find differences
-        #         feedPath = params.get('feedPath', '')
-        #         if not feedPath:
-        #             for show in shows.keys():
-        #                 new_params = params.copy()
-        #                 new_params['feedPath'] = show
-        #                 new_params['name'] = show
-        #                 # TODO add some description, thumb?
-        #                 # TODO add quantity of shows in folder
-        #                 addDir(params=new_params, folder=True)
-        #                 videos = [] # don't display any more videos
-        #         else:
-        #             videos = shows.get(feedPath, [])
-        #             if len(videos):
-        #                 single_feed = videos[0]
-        #                 if single_feed.pilatDealcode:
-        #                     byCustomValue = "{pilatDealcode}{%s},{useType}{Full Episode}" % single_feed.pilatDealcode
-        #                     series_feed = SbsOnDemand.Feed.Feed({"feedId": feed.feedId,
-        #                                                     "filter": {"byCustomValue": byCustomValue}})
-        #                     videos = series_feed.getVideos(startIndex = 0, itemsPerPage = itemsPerPage)
-
-            # for video in videos:
-            #     url = video.getBrowserUrl()
-            #     webdriver = True
-            #
-            #     if url:
-            #         addDir(params={ 'name':video.title,
-            #                         'feedId':feed.feedId,
-            #                         'mode' : 'playVideo',
-            #                         'url' : url,
-            #                         'webdriver' : webdriver,
-            #                      },
-            #                folder=False,
-            #                info=video.description,
-            #                still=video.thumbnail
-            #                )
-            #
-            # if itemsPerPage == videos_len:
-            #     addDir(params={  'name':"Next Page",
-            #                      'feedId':feed.feedId,
-            #                      'feedFilter': json.dumps(feed.filter),
-            #                      'mode' : params["mode"],
-            #                      'startIndex': startIndex + len(videos),
-            #                      'itemsPerPage': itemsPerPage,
-            #                      },
-            #            folder=True)
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
