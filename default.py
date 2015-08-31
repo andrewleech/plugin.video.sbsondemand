@@ -3,6 +3,7 @@ import json
 import urllib
 import urlparse
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
+from webdriver._utils import *
 
 trace_on = False
 # if True:
