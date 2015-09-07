@@ -163,6 +163,7 @@ def Play(params):
         browser.get(url)
         # browser.bring_browser_to_front()
         from resources.webdriver_plugin import SBS_KEYMAP, jsTargetBy, jsTarget
+        browser.match_volumes()
         browser.show_control_window(jsTargetBy, jsTarget, SBS_KEYMAP)
         browser.close()
     xbmc.executebuiltin( "Dialog.Close(busydialog)" )

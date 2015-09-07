@@ -48,3 +48,17 @@ class PLUGIN(object):
     def action_skip_back(self, *_):
         ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.keyboardSeek(-%d);return "done";'%self.SKIP_SECONDS*1000)
         log("back res: %s"%(str(ret)))
+
+    def match_volumes(self):
+        # Uses JSON RPC to get the current volume from kodi (in percent) and then set the
+        # sbs browser player to the same level
+        cmd = '{"jsonrpc": "2.0", "method": "Application.GetProperties", "params": {"properties": ["volume"]}, "id": 1}'
+        result = json.loads(xbmc.executeJSONRPC(cmd))
+        ret = False
+        try:
+            volume = result.get('result').get('volume')
+            ret = self.chrome.execute_script('''window.embeddedPlayer.plugins.pdkcontrols.volumeButton.states.volumeLevelInPercent={volume};$pdk.controller.setVolume({volume});return "done";'''.format(volume=volume))
+        except (ValueError, AttributeError):
+            log("Error getting current volume", level=xbmc.LOGERROR)
+        return ret
+
