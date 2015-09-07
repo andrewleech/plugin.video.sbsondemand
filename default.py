@@ -132,9 +132,8 @@ def Menu(params):
 
                     if url:
                         addDir(params={ 'name':video.title,
-                                        # 'feedId':feed.feedId,
                                         'mode' : 'playVideo',
-                                        'url' : url,
+                                        'url'  : url,
                                         'webdriver' : webdriver,
                                      },
                                folder=False,
@@ -150,11 +149,13 @@ def Menu(params):
                                    'itemsPerPage': itemsPerPage})
                 addDir(params=new_params, folder=True)
 
-
+    # Finished adding menu items
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
 
 def Play(params):
+    xbmc.executebuiltin( "ActivateWindow(busydialog)" )
+
     if params.get('webdriver', False):
         browser = webDriver()
         url = params['url']
@@ -164,6 +165,10 @@ def Play(params):
         from resources.webdriver_plugin import SBS_KEYMAP, jsTargetBy, jsTarget
         browser.show_control_window(jsTargetBy, jsTarget, SBS_KEYMAP)
         browser.close()
+    xbmc.executebuiltin( "Dialog.Close(busydialog)" )
+
+def Back(params=None):
+    xbmc.executebuiltin('XBMC.Action("Back")')
 
 def parse_args(args):
     out = {}
@@ -187,6 +192,7 @@ def main():
     {
     '0'                 : Menu,
     'playVideo'         : Play,
+    'back'              : Back,
     'webdriverSettings' : openWebdriverSettings
 
     }[params["mode"]](params)
