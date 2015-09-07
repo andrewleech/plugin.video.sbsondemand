@@ -204,5 +204,6 @@ except Exception as ex:
     print str(ex)
     raise
 finally:
+    xbmc.executebuiltin( "Dialog.Close(busydialog)" )
     if trace_on:
         pydevd.stoptrace()
