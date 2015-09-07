@@ -35,15 +35,16 @@ class PLUGIN(object):
         self.chrome = chrome
 
     def action_handle_key(self, keyCode):
-        js_key = {'keyCode':keyCode}
-        ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.handleKeyboardInput(%s);' % str(js_key) )
+        js_key = str(keyCode)
+        ret = self.chrome.execute_script('event = {"keyCode":%s,"preventDefault":function(){}}; window.embeddedPlayer.plugins.sbsmisc.handleKeyboardInput(event);return "done";' % str(js_key) )
+        # log("keyCode:%d , res: %s"%(keyCode, str(ret)))
 
     def action_skip_forward(self, *_):
         # sbs keyboard controls don't include larger skips, so go straight to js
         # http://resources.sbs.com.au/vod/sbs/js/embeddedPlayer.plugin-sbsmisc.js
-        ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.keyboardSeek(%d);'%self.SKIP_SECONDS*1000)
-        # log("forward res: %s"%(str(ret)))
+        ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.keyboardSeek(%d);return "done";'%self.SKIP_SECONDS*1000)
+        log("forward res: %s"%(str(ret)))
 
     def action_skip_back(self, *_):
-        ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.keyboardSeek(-%d);'%self.SKIP_SECONDS*1000)
-        # log("back res: %s"%(str(ret)))
+        ret = self.chrome.execute_script('window.embeddedPlayer.plugins.sbsmisc.keyboardSeek(-%d);return "done";'%self.SKIP_SECONDS*1000)
+        log("back res: %s"%(str(ret)))
