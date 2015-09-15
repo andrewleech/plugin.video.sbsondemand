@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/andrewleech/sbsOnDemand.git
+	branch = master
+	commit = 6a9768781bcf318a92d40f877060fff3b3fe159b
+	parent = 12cef929a1bc50aa55da1bbbba1094b264d46caf
+	cmdver = 0.2.1

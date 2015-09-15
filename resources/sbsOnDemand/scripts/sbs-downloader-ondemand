@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+# Initial version http://delx.net.au/hg/jamesstuff/rev/706a749fc341
+# Changes by Michael van der Kolff <mvanderkolff@gmail.com>
+
+import sys, os
+sys.path.append(os.path.dirname(__file__) + '/..')
+import SbsOnDemand.Feed
+import signal
+import subprocess
+import urllib
+import re
+import shutil
+import datetime
+
+bitrate = 1500
+filenameRE = re.compile(r'[\\/:*?"<>|]')
+
+def choose(options, allow_multi):
+	global bitrate
+	skeys = sorted(options.keys())
+	for i, key in enumerate(skeys):
+		print " %d) %s" % (i+1, key)
+	print " 0) Back"
+	print " -1) Enter bitrate (presently {0}K)".format(int(bitrate))
+	while True:
+		try:
+			values = map(int, raw_input("Choose> ").split())
+			if len(values) == 0:
+				continue
+			if 0 in values:
+				return
+			if -1 in values:
+				try:
+					bitrate = float(raw_input("Please input preferred bitrate in KB/s (I'll select the value closest to it): "))
+				except Exception, e:
+					pass
+				return
+			values = [options[skeys[value-1]] for value in values]
+			if allow_multi:
+				return values
+			else:
+				if len(values) == 1:
+					return values[0]
+		except ValueError:
+			pass
+
+def getFilename(video,media):
+	if True in ['news' in k.lower() for k in video.keywords]: # per western wombat suggestion
+		return "{0} {2} ({1}K).flv".format(
+			filenameRE.sub("_",video.title),
+			media.bitrate/1000,
+			datetime.datetime.fromtimestamp(video.availableDate/1000).strftime("%Y-%m-%d"))
+	return "{0} ({1}K).flv".format(filenameRE.sub("_",video.title),media.bitrate/1000)
+
+def download_video(video):
+	possibleMedia = video.getMedia()['content']
+	possibleMedia.sort(key=lambda c: abs(c.bitrate - bitrate*1000))
+	media = possibleMedia[0]
+	filename = getFilename(video,media)
+	if not (media.baseUrl is None) and media.baseUrl.startswith("rtmp://"):
+		download_rtmp(filename, media)
+	else:
+		download_urllib(filename, media)
+
+def download_rtmp(filename, mediaEntry):
+	cmd = [
+		"rtmpdump",
+		"--resume",
+		"-o", filename
+	] + mediaEntry.getRtmpdumpCommand()
+	try:
+		p = subprocess.Popen(cmd)
+		p.wait()
+	except OSError, e:
+		print "Couldn't execute ", cmd
+		print "Is rtmpdump.exe present?"
+		print "The error experienced is ", e
+	except KeyboardInterrupt:
+		print "Cancelled", cmd
+		try:
+			p.terminate()
+			p.wait()
+		except KeyboardInterrupt:
+			p.send_signal(signal.SIGKILL)
+			p.wait()
+
+def download_urllib(filename, mediaEntry):
+	url = mediaEntry.videoUrl
+	print "Downloading: %s -> %s" % (url, filename)
+	try:
+		src = urllib.urlopen(url)
+		dst = open(filename, "wb")
+		shutil.copyfileobj(src, dst)
+	except KeyboardInterrupt:
+		print "\nCancelled", url
+	finally:
+		src.close()
+		dst.close()
+
+def getProgramName(video):
+	return video.programName or video.keywords[0]
+
+def main():
+	print "Script to download programs from the SBS On-Demand service.  Please don't panic - I'm retrieving the feed of all the programs available... Which it turns out takes some time :)"
+	programs = SbsOnDemand.Feed.getDefaultFeeds()['Programs']
+	possibleVideos = programs.getVideos(itemsPerPage=programs.totalResults)
+	videosByCategory = dict()
+	for video in possibleVideos:
+		videosByCategory[getProgramName(video)] = videosByCategory.get(getProgramName(video),dict())
+		videosByCategory[getProgramName(video)][video.title] = video
+	while True:
+		category = choose(videosByCategory, allow_multi=False)
+		if category is None:
+			continue
+		while True:
+			generator = choose(category, allow_multi=True)
+			if generator is None:
+				break
+			for video in generator:
+				download_video(video)
+
+if __name__ == "__main__":
+	try:
+		main()
+	except (KeyboardInterrupt, EOFError):
+		print "\nExiting..."
+
