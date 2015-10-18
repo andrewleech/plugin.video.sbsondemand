@@ -155,18 +155,20 @@ def Menu(params):
 
 def Play(params):
     xbmc.executebuiltin( "ActivateWindow(busydialog)" )
+    try:
+        if params.get('webdriver', False):
+            browser = webDriver()
+            url = params['url']
 
-    if params.get('webdriver', False):
-        browser = webDriver()
-        url = params['url']
-
-        browser.get(url)
-        # browser.bring_browser_to_front()
-        from resources.webdriver_plugin import SBS_KEYMAP, jsTargetBy, jsTarget
-        browser.match_volumes()
-        browser.show_control_window(jsTargetBy, jsTarget, SBS_KEYMAP)
-        browser.close()
-    xbmc.executebuiltin( "Dialog.Close(busydialog)" )
+            browser.get(url)
+            # browser.bring_browser_to_front()
+            from resources.webdriver_plugin import SBS_KEYMAP, jsTargetBy, jsTarget
+            browser.match_volumes()
+            xbmc.executebuiltin( "Dialog.Close(busydialog)" )
+            browser.show_control_window(jsTargetBy, jsTarget, SBS_KEYMAP)
+            browser.close()
+    finally:
+        xbmc.executebuiltin( "Dialog.Close(busydialog)" )
 
 def Back(params=None):
     xbmc.executebuiltin('XBMC.Action("Back")')
